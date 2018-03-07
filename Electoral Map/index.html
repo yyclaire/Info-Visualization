@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<script src="http://d3js.org/d3.v3.min.js"></script>
+<style type="text/css">
+
+/* On mouse hover, lighten state color */
+path:hover {
+	fill-opacity: .7;
+}
+
+/* Style for Custom Tooltip */
+div.tooltip {   
+  color: white;
+	background-color: black;
+	padding: 0.6em;
+	border-radius: 7px;
+	opacity: .9;
+	font-size: 10px;
+	position: absolute;
+}        
+}
+        
+/* Legend Font Style */
+body {
+	font: 11px sans-serif;
+	font-family:"arial";
+}
+        
+/* Legend Position Style */
+.legend {
+	position:absolute;
+	left:800px;
+	top:350px;
+	font-family:"arial";
+}
+#president_pic{
+	position: absolute;
+    left: 1050px;
+    top: 300px;
+    width: 170px;
+    height: 220px;
+    background-repeat:no-repeat;
+    background-size: 100% 100%;
+}
+#winner{
+	position: absolute;
+	left:1020px;
+	top:530px;
+	font-family: "arial";
+	font-size:18px;
+	text-align: center;
+
+}
+</style>
+</head>
+<body>
+<div id="president_pic"></div>
+<div id="winner"></div>
+<script type="text/javascript">		
+//Width and height of map
+var width = 1300;
+var height = 900;
+var margin = {top: 20, right: 30, bottom: 30, left: 80};
+var color = ["rgb(0,56,122)","rgb(0,73,158)","rgb(8,127,192)","rgb(88,174,217)","rgb(147,203,227)","rgb(194,219,240)","rgb(253,240,236)","rgb(255,137,103)","rgb(255,87,49)","rgb(190,25,29)","rgb(181,0,0)","rgb(148,0,0)"];
+var timeline = [1940,1944,1948,1952,1956,1960,1964,1968,1972,1976,1980,1984,1988,1992,1996,2000,2004,2008,2012,2016];
+var president = ['Franklin D. Roosevelt','Franklin D. Roosevelt','Harry S. Truman','Harry S. Truman','Dwight D. Eisenhower','Dwight D. Eisenhower','Lyndon B. Johnson','Lyndon B. Johnson','Richard Nixon','Gerald Ford','Jimmy Carter','Ronald Reagan','Ronald Reagan','George H. W. Bush','Bill Clinton','Bill Clinton','George W. Bush','George W. Bush','Barack Obama','Barack Obama'];
+
+var imageURL = ['https://upload.wikimedia.org/wikipedia/commons/b/b8/FDR_in_1933.jpg',
+				'https://upload.wikimedia.org/wikipedia/commons/b/b8/FDR_in_1933.jpg',
+				'https://www.biography.com/.image/t_share/MTE5NTU2MzE2MzkwNTI0NDI3/harry-truman-9511121-1-402.jpg',
+				'https://www.biography.com/.image/t_share/MTE5NTU2MzE2MzkwNTI0NDI3/harry-truman-9511121-1-402.jpg',
+				'https://upload.wikimedia.org/wikipedia/commons/8/88/General_of_the_Army_Dwight_D._Eisenhower_1947.jpg',
+
+				'https://upload.wikimedia.org/wikipedia/commons/8/88/General_of_the_Army_Dwight_D._Eisenhower_1947.jpg',
+
+				'https://upload.wikimedia.org/wikipedia/commons/c/c3/37_Lyndon_Johnson_3x4.jpg'
+				,
+				'https://upload.wikimedia.org/wikipedia/commons/c/c3/37_Lyndon_Johnson_3x4.jpg',
+
+				'https://upload.wikimedia.org/wikipedia/commons/thumb/3/39/Richard_M._Nixon%2C_ca._1935_-_1982_-_NARA_-_530679.jpg/1200px-Richard_M._Nixon%2C_ca._1935_-_1982_-_NARA_-_530679.jpg',
+
+				'https://upload.wikimedia.org/wikipedia/commons/4/4e/Gerald_Ford.jpg',
+
+				'https://upload.wikimedia.org/wikipedia/commons/5/5a/JimmyCarterPortrait2.jpg',
+
+				'https://upload.wikimedia.org/wikipedia/commons/1/16/Official_Portrait_of_President_Reagan_1981.jpg',
+
+				'https://upload.wikimedia.org/wikipedia/commons/1/16/Official_Portrait_of_President_Reagan_1981.jpg',
+
+				'https://upload.wikimedia.org/wikipedia/commons/thumb/0/0f/George_H._W._Bush%2C_President_of_the_United_States%2C_1989_official_portrait.jpg/1200px-George_H._W._Bush%2C_President_of_the_United_States%2C_1989_official_portrait.jpg',
+
+				'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d3/Bill_Clinton.jpg/1200px-Bill_Clinton.jpg',
+
+				'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d3/Bill_Clinton.jpg/1200px-Bill_Clinton.jpg',
+
+				'https://upload.wikimedia.org/wikipedia/commons/d/d4/George-W-Bush.jpeg',
+				'https://upload.wikimedia.org/wikipedia/commons/d/d4/George-W-Bush.jpeg',
+
+				'https://upload.wikimedia.org/wikipedia/commons/d/d4/George-W-Bush.jpeg","https://upload.wikimedia.org/wikipedia/commons/d/d4/George-W-Bush.jpeg',
+				'https://www.biography.com/.image/t_share/MTE4MDAzNDEwNzg5ODI4MTEw/barack-obama-12782369-1-402.jpg',
+				'https://www.biography.com/.image/t_share/MTE4MDAzNDEwNzg5ODI4MTEw/barack-obama-12782369-1-402.jpg'];
+
+var legendContent = ["-60.0 to -50.0","-50.0 to -40.0","-40.0 to -30.0","-30.0 to -20.0","-20.0 to -10.0","-10.0 to 0.0","0.0 to 10.0","10.0 to 20.0","20.0 to 30.0","30.0 to 40.0","40.0 to 50.0","50.0 to 60.0"];
+
+// D3 Projection
+var projection = d3.geo.albersUsa()
+				   .translate([width/2, height/2])    // translate to center of screen
+				   .scale([1000]);          // scale things down so see entire US
+        
+// Define path generator
+var path = d3.geo.path()               // path generator that will convert GeoJSON to SVG paths
+		  	 .projection(projection);  // tell path generator to use albersUsa projection
+
+var div = d3.select("body").append("div")   
+    .attr("class", "tooltip")               
+    .style("opacity", 0);
+
+//Create SVG element and append map to the SVG
+var svg = d3.select("body")
+			.append("svg")
+			.attr("width", width)
+			.attr("height", height);
+
+//Get winner data
+var yearwise_winner;
+var circleWidth = 50;
+var xScale = d3.scale.linear()
+             .range([margin.left, width-margin.right])
+              .domain([1940, 2016]);
+
+d3.csv("data/yearwise-winner.csv",function(data){
+	yearwise_winner = data;
+	//Draw the timeline
+
+	var yearLegend = svg.selectAll(".year")
+						.data(yearwise_winner)
+						.enter()
+						.append('g')
+						.data(yearwise_winner)
+						.attr("transform", function(d,i){return "translate("+(i%20 * circleWidth+200)+",100)"})
+						.attr("class","yearLegend");
+	var circles = yearLegend.append("circle")
+					    .attr("r", 6)
+					    .style("fill",function(d){
+					    	return d.PARTY=="D"?color[3]:color[8];})
+					    .on("mouseover", onMouseOver)
+					    .on("mouseout", onMouseOut)
+					    .on("click",mouseClicked)
+	var dashedLines = yearLegend.append("line")
+    					.style("stroke", "#ddd")
+    					.style("stroke-dasharray", "1.5,1.5")
+    					.style("stroke-width",2)
+    					.attr("x1",6)
+    					.attr("x2",50)
+    					.attr("y1",0)
+    					.attr("y2",0);
+
+	    
+
+    //Add text of the year
+	var yearText = yearLegend.append('text')
+				    .attr("x", 0)
+				    .attr("y", 20)
+				    .attr("text-anchor","middle")
+				    .attr('font-size','8pt')
+				    .attr("font-family","arial")
+				    .text(function(d){return d.YEAR;});
+
+});
+
+//Create the legend
+var itemWidth = 75;
+var itemHeight = 20;
+var marginX = 220;
+var marginY = 160;
+
+var legend = svg.selectAll(".legend")
+	.data(legendContent)
+	.enter()
+	.append("g")
+	.attr("transform", function(d,i) { return "translate(" + (i%12 * itemWidth + marginX)+"," + (marginY+Math.floor(i/12) * itemHeight) + ")"; })
+	.attr("class","legend");
+	
+var rects = legend.append('rect')
+	.attr("width",73)
+	.attr("height",8)
+	.attr("fill", function(d,i) { return color[i]; });
+	
+var legendText = legend.append('text')
+	.attr("x", 10)
+	.attr("y",30)
+	.attr('font-size','7pt')
+	.attr("font-family","arial")
+	.text(function(d) { return d; });
+//add the picture of the president
+d3.select("#president_pic") 
+	.style('background-image', 'url(' + 'https://upload.wikimedia.org/wikipedia/commons/b/b8/FDR_in_1933.jpg' + ')');
+d3.select("#winner")
+	.html("The Winner Of 1994 Goes To: "+"<br/>"+"<strong style='color:"+color[3]+"'>"+president[0]+"</strong>");
+
+
+//create the original map
+drawMap();
+
+function drawMap(){        
+	// Load in my states data!	
+	var filePath = "data/election-results-1940.csv";
+	d3.csv(filePath, function(data) {
+
+	// Load GeoJSON data and merge with states data
+		d3.json("us-states.json", function(json) {
+
+			// Loop through each state data value in the .csv file
+			var winner = yearwise_winner[0].PARTY;//NEED TO BE CHANGED!!!!!!!!!
+			for (var i = 0; i < data.length; i++) {
+				// Grab State Name & votes
+				var dataState = data[i].State;
+				var dataValue = data[i].Total_EV;
+				var dataAbbrev = data[i].Abbreviation;
+				var D_Percent = data[i].D_Percentage;
+				var R_Percent =  data[i].R_Percentage;
+				var netWin = D_Percent - R_Percent;
+				var d_nominee = data[i].D_Nominee;
+				var r_nominee = data[i].R_Nominee;
+				var d_votes = data[i].D_Votes;
+				var r_votes = data[i].R_Votes;
+
+				// Find the corresponding state inside the GeoJSON
+				for (var j = 0; j < json.features.length; j++)  {
+					var jsonState = json.features[j].properties.name;
+					if (dataState == jsonState) {
+						// Copy the data value into the JSON
+						json.features[j].properties.vote = dataValue; 
+						json.features[j].properties.abbrev = dataAbbrev;
+						json.features[j].properties.d_nominee = d_nominee;
+						json.features[j].properties.r_nominee = r_nominee;
+						json.features[j].properties.d_votes = d_votes;
+						json.features[j].properties.r_votes = r_votes;
+						json.features[j].properties.d_percent = D_Percent;
+						json.features[j].properties.r_percent = R_Percent;
+						json.features[j].properties.netWin = (winner == "D"? netWin: -netWin);
+						break;
+					}
+				}
+			}
+			//remove existing path
+			svg.selectAll("path")
+				.data(json.features)
+				.enter()
+				.append("svg:path")
+				.attr("d", path)
+				.style("stroke", "#fff")
+				.style("stroke-width", "1")
+				.attr("fill", function(d) {
+					var netWin = d.properties.netWin;
+					if(netWin>=-60  && netWin<=-50){return color[0];}
+					else if(netWin>=-50  && netWin<=-40){return color[1]; }
+					else if(netWin>=-40  && netWin<=-30){return color[2];}
+					else if(netWin>=-30  && netWin<=-20){return color[3];}
+					else if(netWin>=-20  && netWin<=-10){return color[4];}
+					else if(netWin>=-10  && netWin<=0){return color[5];}
+					else if(netWin>=0  && netWin<=10){return color[6];}
+					else if(netWin>=10  && netWin<=20){return color[7];}
+					else if(netWin>=20  && netWin<=30){return color[8];}
+					else if(netWin>=30  && netWin<=40){return color[9];}
+					else if(netWin>=40  && netWin<=50){return color[10];}
+					else{return color[11];}
+				})
+				.on("mouseover", function(d) {      
+		            div.transition()        
+		                .duration(200)      
+		                .style("opacity", .9);      
+		            div .html("<strong>"+d.properties.name+"</strong>"+ "<br/>"  + "Electoral Votes: "+d.properties.vote+"<br/>"+"<ul>"+"<li style = color:"+color[8]+">"+d.properties.r_nominee+": "+d.properties.r_votes+" ("+d.properties.r_percent+"%)"+"</li>"+"<li style=color:"+color[3]+">"+d.properties.d_nominee+": "+d.properties.d_votes+" ("+d.properties.d_percent+"%)"+"</li>"+"</ul>")  
+		                .style("left", (d3.event.pageX) + "px")     
+		                .style("top", (d3.event.pageY - 28) + "px");    
+		            })                  
+		        .on("mouseout", function(d) {       
+		            div.transition()        
+		                .duration(500)      
+		                .style("opacity", 0);   
+		        });
+
+			//Append state abbreviation to the map
+			svg.selectAll(".text")
+			    .data(json.features)
+			    .enter()
+			    .append("svg:text")
+			    .text(function(d){
+			    	if(d.properties.name=="District of Columbia"){
+			    		return "";
+			    	}
+			    	return d.properties.abbrev==null?d.properties.name: d.properties.abbrev;
+			    })
+			    	.attr("x", function(d){return path.centroid(d)[0];})
+			    	.attr("y", function(d){return  path.centroid(d)[1];})
+			    	.attr("text-anchor","middle")
+			    	.attr("font-family","arial")
+			    	.attr('font-size','8pt');
+
+		});
+
+	});
+}
+//update the map
+function mouseClicked(d,i){
+	//change style of the circle
+	
+	d3.selectAll("#clicked")
+		.attr("r",6)
+		.style("stroke-width","0");	
+	
+	d3.select(this)
+		.attr("r", 10)
+		.attr("id","clicked")
+		.style("stroke","rgb(0,0,0)")
+		.style("stroke-width","2");	
+
+	d3.selectAll("#president_pic") 
+		.style('background-image', 'url(' + imageURL[i] + ')');
+
+	var winnerColor = yearwise_winner[i].PARTY=="D"?color[3]:color[8];
+
+	d3.select("#winner")
+	.html("The Winner Of "+ d.YEAR +" Goes To: "+"<br/>"+"<strong style='color: "+winnerColor+"'>"+president[i]+"</strong>");
+
+
+	// Load in my states data!	
+	var filePath = "data/election-results-"+d.YEAR+".csv";
+	d3.csv(filePath, function(data) {
+
+	// Load GeoJSON data and merge with states data
+		d3.json("us-states.json", function(json) {
+
+			// Loop through each state data value in the .csv file
+			var winner = d.PARTY;//NEED TO BE CHANGED!!!!!!!!!
+			for (var i = 0; i < data.length; i++) {
+				// Grab State Name & votes
+				var dataState = data[i].State;
+				var dataValue = data[i].Total_EV;
+				var dataAbbrev = data[i].Abbreviation;
+				var D_Percent = data[i].D_Percentage;
+				var R_Percent =  data[i].R_Percentage;
+				var netWin = D_Percent - R_Percent;
+				var d_nominee = data[i].D_Nominee;
+				var r_nominee = data[i].R_Nominee;
+				var d_votes = data[i].D_Votes;
+				var r_votes = data[i].R_Votes;
+
+				// Find the corresponding state inside the GeoJSON
+				for (var j = 0; j < json.features.length; j++)  {
+					var jsonState = json.features[j].properties.name;
+					if (dataState == jsonState) {
+						// Copy the data value into the JSON
+						json.features[j].properties.vote = dataValue; 
+						json.features[j].properties.abbrev = dataAbbrev;
+						json.features[j].properties.d_nominee = d_nominee;
+						json.features[j].properties.r_nominee = r_nominee;
+						json.features[j].properties.d_votes = d_votes;
+						json.features[j].properties.r_votes = r_votes;
+						json.features[j].properties.d_percent = D_Percent;
+						json.features[j].properties.r_percent = R_Percent;
+						json.features[j].properties.netWin = (winner == "D"? netWin: -netWin);
+						break;
+					}
+				}
+			}
+			
+			// Bind the data to the SVG and create one path per GeoJSON feature
+			svg.selectAll("path")
+			   .data(json.features)
+			   .attr("fill", function(d) {
+					var netWin = d.properties.netWin;
+					if(netWin>=-60  && netWin<=-50){return color[0];}
+					else if(netWin>=-50  && netWin<=-40){return color[1]; }
+					else if(netWin>=-40  && netWin<=-30){return color[2];}
+					else if(netWin>=-30  && netWin<=-20){return color[3];}
+					else if(netWin>=-20  && netWin<=-10){return color[4];}
+					else if(netWin>=-10  && netWin<=0){return color[5];}
+					else if(netWin>=0  && netWin<=10){return color[6];}
+					else if(netWin>=10  && netWin<=20){return color[7];}
+					else if(netWin>=20  && netWin<=30){return color[8];}
+					else if(netWin>=30  && netWin<=40){return color[9];}
+					else if(netWin>=40  && netWin<=50){return color[10];}
+					else{return color[11];}
+				});
+				
+		});
+	});
+}
+
+function onMouseOver(){// try to modify the text underneath
+	d3.select(this)
+		.attr("r", 10)
+		.style("stroke","rgb(0,0,0)")
+		.style("stroke-width","1");	
+}
+
+function onMouseOut(){
+	if(d3.select(this).attr("id")!="clicked"){
+		d3.select(this)
+	   .attr("r",6)
+	   .style("stroke-width","0");
+	}
+}
+
+</script>
+</body>
+</html>
+
