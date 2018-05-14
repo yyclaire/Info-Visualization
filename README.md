@@ -10,6 +10,9 @@ D3.js
 HTML
 CSS
 
-## ScreenShot
+## Website Link
+http://www.electoralmap.com.s3-website-us-east-1.amazonaws.com/
+
+## Website ScreenShot
 
 ![Imgur](https://i.imgur.com/SmjKH7F.png)
